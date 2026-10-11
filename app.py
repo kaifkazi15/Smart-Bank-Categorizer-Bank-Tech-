@@ -3,7 +3,6 @@ import pandas as pd
 import joblib
 import numpy as np
 import plotly.express as px
-import plotly.graph_objects as go
 
 # Page Configuration
 st.set_page_config(
@@ -24,7 +23,6 @@ st.markdown("""
         font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
     }
 
-    /* Custom Scrollbar */
     ::-webkit-scrollbar {
         width: 8px;
         height: 8px;
@@ -36,18 +34,13 @@ st.markdown("""
         background: #1e293b;
         border-radius: 4px;
     }
-    ::-webkit-scrollbar-thumb:hover {
-        background: #3b82f6;
-    }
 
-    /* Sidebar Styling */
     section[data-testid="stSidebar"] {
         background: rgba(6, 11, 25, 0.95) !important;
         backdrop-filter: blur(20px);
         border-right: 1px solid rgba(255, 255, 255, 0.08);
     }
 
-    /* Neo-Banking Hero Header */
     .neo-header {
         background: linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.85) 100%);
         border: 1px solid rgba(56, 189, 248, 0.2);
@@ -88,29 +81,23 @@ st.markdown("""
         display: flex;
         align-items: center;
         gap: 8px;
-        box-shadow: 0 0 20px rgba(16, 185, 129, 0.2);
     }
 
-    /* Glowing Financial Metric Cards */
     .metric-container {
         background: linear-gradient(145deg, rgba(15, 23, 42, 0.8) 0%, rgba(30, 41, 59, 0.5) 100%);
         border: 1px solid rgba(255, 255, 255, 0.08);
         border-radius: 16px;
         padding: 24px;
-        position: relative;
-        overflow: hidden;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: all 0.3s ease;
     }
     .metric-container:hover {
         transform: translateY(-4px);
         border-color: rgba(56, 189, 248, 0.4);
-        box-shadow: 0 15px 30px -10px rgba(56, 189, 248, 0.15);
     }
     .metric-val {
         font-size: 1.9rem;
         font-weight: 800;
         color: #f8fafc;
-        letter-spacing: -0.03em;
     }
     .metric-lbl {
         color: #64748b;
@@ -121,7 +108,6 @@ st.markdown("""
         margin-top: 6px;
     }
 
-    /* Vibrant Buttons */
     .stButton>button {
         background: linear-gradient(135deg, #0284c7 0%, #2563eb 100%) !important;
         color: #ffffff !important;
@@ -129,16 +115,8 @@ st.markdown("""
         border-radius: 10px !important;
         padding: 12px 24px !important;
         font-weight: 600 !important;
-        box-shadow: 0 4px 20px rgba(37, 99, 235, 0.4) !important;
-        transition: all 0.2s ease !important;
-    }
-    .stButton>button:hover {
-        background: linear-gradient(135deg, #0ea5e9 0%, #1d4ed8 100%) !important;
-        box-shadow: 0 6px 25px rgba(14, 165, 233, 0.6) !important;
-        transform: translateY(-1px);
     }
 
-    /* Tabs Styling */
     .stTabs [data-baseweb="tab-list"] {
         gap: 12px;
         background-color: transparent;
@@ -156,12 +134,11 @@ st.markdown("""
         background: linear-gradient(135deg, rgba(14, 165, 233, 0.2) 0%, rgba(37, 99, 235, 0.2) 100%) !important;
         color: #38bdf8 !important;
         border-color: rgba(56, 189, 248, 0.5) !important;
-        box-shadow: 0 0 15px rgba(56, 189, 248, 0.15);
     }
 </style>
 """, unsafe_allow_html=True)
 
-# Load AI Model and Vectorizer safely
+# Load AI Model safely
 @st.cache_resource
 def load_neo_models():
     try:
@@ -173,7 +150,7 @@ def load_neo_models():
 
 model, vectorizer = load_neo_models()
 
-# Top Hero Header
+# Hero Header
 st.markdown("""
 <div class="neo-header">
     <div>
@@ -181,27 +158,25 @@ st.markdown("""
         <p class="neo-subtitle">Autonomous Multi-Bank & UPI Transaction Categorization Engine</p>
     </div>
     <div class="live-badge">
-        <span style="width: 8px; height: 8px; background: #34d399; border-radius: 50%; display: inline-block; box-shadow: 0 0 10px #34d399;"></span>
+        <span style="width: 8px; height: 8px; background: #34d399; border-radius: 50%; display: inline-block;"></span>
         AI Core Online
     </div>
 </div>
 """, unsafe_allow_html=True)
 
 if model is None or vectorizer is None:
-    st.error("⚠️ Model artifacts (`transaction_model.pkl` or `tfidf_vectorizer.pkl`) missing. Please verify root directory files.")
+    st.error("⚠️ Model artifacts (`transaction_model.pkl` or `tfidf_vectorizer.pkl`) missing in the root directory.")
 else:
-    # Sidebar File Ingestion
     st.sidebar.markdown("### 📥 Statement Ingestion")
     uploaded_file = st.sidebar.file_uploader(
-        "Upload Bank or UPI Export",
+        "Upload Raw Bank or UPI Export",
         type=["csv", "xlsx", "xls", "txt"],
-        help="Supports CSV, Excel (.xlsx, .xls), and Text statements from PhonePe, GPay, HDFC, SBI, ICICI, etc."
+        help="Upload clean raw statements (Avoid uploading already categorized files)."
     )
 
     if uploaded_file is not None:
         try:
             filename = uploaded_file.name
-            # Multi-format reader
             if filename.endswith('.csv') or filename.endswith('.txt'):
                 try:
                     df = pd.read_csv(uploaded_file)
@@ -211,79 +186,69 @@ else:
             else:
                 df = pd.read_excel(uploaded_file)
 
-            # Smart Column Detector
+            # --- SMART COLUMN DETECTOR (Ignores previous category artifacts) ---
+            valid_cols = [c for c in df.columns if 'cat' not in str(c).lower()]
+            search_space = valid_cols if valid_cols else df.columns
+
             keywords = ['desc', 'narration', 'particular', 'detail', 'remark', 'note', 'transaction', 'merchant', 'paid', 'item']
             desc_col = None
             
-            for col in df.columns:
+            for col in search_space:
                 if any(kw in str(col).lower() for kw in keywords):
                     desc_col = col
                     break
             
             if desc_col is None:
-                for col in df.columns:
+                for col in search_space:
                     if df[col].dtype == 'object':
                         desc_col = col
                         break
             if desc_col is None:
-                desc_col = df.columns[0]
+                desc_col = search_space[0]
 
             st.sidebar.success(filename)
-            st.sidebar.info(f"Field Mapped: `{desc_col}`")
+            st.sidebar.info(f"Active Field: `{desc_col}`")
 
-            # Run AI Inference & Confidence Scoring
+            # Clean dataframe from any existing prediction columns to prevent conflicts
+            for col in list(df.columns):
+                if 'predicted' in col.lower() or col.lower() == 'category' or col.lower() == 'confidence':
+                    df.drop(columns=[col], inplace=True)
+
+            # Run Fresh AI Inference
             descriptions = df[desc_col].astype(str)
             X_vec = vectorizer.transform(descriptions)
             
             df['Category'] = model.predict(X_vec)
             df['Confidence'] = np.max(model.predict_proba(X_vec), axis=1)
 
-            # Identify Amount Column if available for deeper financial analytics
-            amount_col = None
-            for col in df.columns:
-                if any(k in str(col).lower() for k in ['amount', 'withdrawal', 'debit', 'sum', 'value']):
-                    amount_col = col
-                    break
-
             # Dashboard Tabs
             tab1, tab2, tab3 = st.tabs(["📊 Executive Analytics", "🔍 Confidence & Audit", "📥 Verified Export"])
 
             with tab1:
-                # Top KPI Metrics Cards
                 c1, c2, c3, c4 = st.columns(4)
                 with c1:
-                    st.markdown(f'<div class="metric-container"><div class="metric-val">{len(df):,}</div><div class="metric-lbl">Total Transactions</div></div>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="metric-container"><div class="metric-val">{len(df):,}</div><div class="metric-lbl">Transactions</div></div>', unsafe_allow_html=True)
                 with c2:
-                    st.markdown(f'<div class="metric-container"><div class="metric-val" style="color: #38bdf8;">{df["Category"].nunique()}</div><div class="metric-lbl">Unique Categories</div></div>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="metric-container"><div class="metric-val" style="color: #38bdf8;">{df["Category"].nunique()}</div><div class="metric-lbl">Categories</div></div>', unsafe_allow_html=True)
                 with c3:
-                    st.markdown(f'<div class="metric-container"><div class="metric-val" style="color: #34d399;">{df["Confidence"].mean()*100:.1f}%</div><div class="metric-lbl">AI Confidence</div></div>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="metric-container"><div class="metric-val" style="color: #34d399;">{df["Confidence"].mean()*100:.1f}%</div><div class="metric-lbl">Confidence</div></div>', unsafe_allow_html=True)
                 with c4:
                     flagged = len(df[df['Confidence'] < 0.70])
-                    st.markdown(f'<div class="metric-container"><div class="metric-val" style="color: #f43f5e;">{flagged}</div><div class="metric-lbl">Review Required</div></div>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="metric-container"><div class="metric-val" style="color: #f43f5e;">{flagged}</div><div class="metric-lbl">Review Needed</div></div>', unsafe_allow_html=True)
 
                 st.markdown("<br>", unsafe_allow_html=True)
 
-                # --- COLOR-CODED PLOTLY CHARTS ---
                 col_left, col_right = st.columns([1.2, 1])
+                custom_colors = ['#38bdf8', '#818cf8', '#c084fc', '#f472b6', '#34d399', '#fbbf24', '#f87171', '#a78bfa']
 
                 with col_left:
-                    st.subheader("Category Distribution (Interactive Donut Chart)")
+                    st.subheader("Category Distribution (Donut Chart)")
                     cat_counts = df['Category'].value_counts().reset_index()
                     cat_counts.columns = ['Category', 'Count']
 
-                    # Custom color palette for categories
-                    custom_colors = ['#38bdf8', '#818cf8', '#c084fc', '#f472b6', '#34d399', '#fbbf24', '#f87171', '#a78bfa']
-
-                    fig_donut = px.pie(
-                        cat_counts, 
-                        names='Category', 
-                        values='Count', 
-                        hole=0.65,
-                        color_discrete_sequence=custom_colors
-                    )
+                    fig_donut = px.pie(cat_counts, names='Category', values='Count', hole=0.65, color_discrete_sequence=custom_colors)
                     fig_donut.update_layout(
-                        paper_bgcolor='rgba(0,0,0,0)',
-                        plot_bgcolor='rgba(0,0,0,0)',
+                        paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
                         font=dict(color='#f1f5f9', family='Plus Jakarta Sans'),
                         legend=dict(orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5),
                         margin=dict(t=10, b=10, l=10, r=10)
@@ -291,22 +256,13 @@ else:
                     st.plotly_chart(fig_donut, use_container_width=True)
 
                 with col_right:
-                    st.subheader("Top Category Breakdown")
-                    fig_bar = px.bar(
-                        cat_counts,
-                        x='Category',
-                        y='Count',
-                        color='Category',
-                        color_discrete_sequence=custom_colors
-                    )
+                    st.subheader("Category Breakdown")
+                    fig_bar = px.bar(cat_counts, x='Category', y='Count', color='Category', color_discrete_sequence=custom_colors)
                     fig_bar.update_layout(
-                        paper_bgcolor='rgba(0,0,0,0)',
-                        plot_bgcolor='rgba(0,0,0,0)',
-                        font=dict(color='#f1f5f9', family='Plus Jakarta Sans'),
-                        showlegend=False,
+                        paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+                        font=dict(color='#f1f5f9', family='Plus Jakarta Sans'), showlegend=False,
                         margin=dict(t=10, b=10, l=10, r=10),
-                        xaxis=dict(showgrid=False),
-                        yaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.05)')
+                        xaxis=dict(showgrid=False), yaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.05)')
                     )
                     st.plotly_chart(fig_bar, use_container_width=True)
 
@@ -314,35 +270,32 @@ else:
                 st.dataframe(df, use_container_width=True)
 
             with tab2:
-                st.subheader("Low Confidence Audit & Review Queue")
-                st.write("Isolate and verify transactions where model confidence falls below your operational threshold.")
+                st.subheader("Low Confidence Audit Queue")
                 threshold = st.slider("Confidence Filter Level", 0.0, 1.0, 0.70, 0.05)
-                
                 audit_df = df[df['Confidence'] < threshold]
                 st.markdown(f"**Flagged Entries:** {len(audit_df)}")
                 if len(audit_df) > 0:
                     st.dataframe(audit_df, use_container_width=True)
                 else:
-                    st.success("All transactions successfully cleared confidence thresholds.")
+                    st.success("All transactions clear confidence threshold.")
 
             with tab3:
                 st.subheader("Export Verified Dataset")
-                st.write("Download your fully categorized statement complete with AI confidence scores and assigned category markers.")
                 csv_bytes = df.to_csv(index=False).encode('utf-8')
                 st.download_button(
-                    label="Download Audited CSV Statement",
+                    label="Download Audited CSV",
                     data=csv_bytes,
-                    file_name=f"aurapay_categorized_{filename.split('.')[0]}.csv",
+                    file_name=f"aurapay_clean_{filename.split('.')[0]}.csv",
                     mime="text/csv"
                 )
 
         except Exception as e:
-            st.error(f"Error parsing statement file: {e}")
+            st.error(f"Error parsing file: {e}")
 
     else:
         st.markdown("""
         <div style="text-align: center; padding: 90px 20px; background: rgba(15, 23, 42, 0.5); border: 2px dashed rgba(56, 189, 248, 0.2); border-radius: 20px;">
-            <h3 style="color: #f1f5f9; margin-bottom: 10px; font-weight: 700;">Ready for Data Ingestion</h3>
-            <p style="color: #64748b; font-size: 1rem;">Upload any bank statement, UPI export, CSV, Excel, or Text file from the sidebar to activate the intelligence engine.</p>
+            <h3 style="color: #f1f5f9; margin-bottom: 10px; font-weight: 700;">Ready for Raw Statement Upload</h3>
+            <p style="color: #64748b; font-size: 1rem;">Upload a clean raw statement (like the 50-day Excel or CSV file) to get precise AI categories for Movies, Shopping, Transport, and Food.</p>
         </div>
         """, unsafe_allow_html=True)
