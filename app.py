@@ -2,223 +2,347 @@
 import pandas as pd
 import joblib
 import numpy as np
+import plotly.express as px
+import plotly.graph_objects as go
 
-# Page Layout Setup
+# Page Configuration
 st.set_page_config(
-    page_title="Fintech AI | Universal Bank Statement Categorizer",
+    page_title="AuraPay | Global Treasury & AI Intelligence",
     page_icon="💳",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# Ultra-Modern Fintech Glassmorphism CSS Styling
+# World-Class Neo-Banking CSS & Animations
 st.markdown("""
 <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
     .stApp {
-        background: linear-gradient(135deg, #090d16 0%, #111827 50%, #090d16 100%);
-        color: #f8fafc;
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        background: radial-gradient(circle at 10% 20%, #080e21 0%, #030611 100%);
+        color: #f1f5f9;
+        font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
     }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+        background: #030611;
+    }
+    ::-webkit-scrollbar-thumb {
+        background: #1e293b;
+        border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+        background: #3b82f6;
+    }
+
+    /* Sidebar Styling */
     section[data-testid="stSidebar"] {
-        background: rgba(15, 23, 42, 0.85) !important;
-        backdrop-filter: blur(16px);
+        background: rgba(6, 11, 25, 0.95) !important;
+        backdrop-filter: blur(20px);
         border-right: 1px solid rgba(255, 255, 255, 0.08);
     }
-    .header-box {
-        background: linear-gradient(90deg, rgba(79, 70, 229, 0.15) 0%, rgba(147, 51, 234, 0.15) 100%);
-        border: 1px solid rgba(147, 51, 234, 0.3);
-        border-radius: 16px;
-        padding: 24px;
-        margin-bottom: 25px;
-        backdrop-filter: blur(12px);
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+
+    /* Neo-Banking Hero Header */
+    .neo-header {
+        background: linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.85) 100%);
+        border: 1px solid rgba(56, 189, 248, 0.2);
+        box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        border-radius: 20px;
+        padding: 32px 36px;
+        margin-bottom: 28px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        backdrop-filter: blur(16px);
     }
-    .header-title {
-        font-size: 2.2rem;
+    .neo-title {
+        font-size: 2.1rem;
         font-weight: 800;
-        background: linear-gradient(90deg, #818cf8, #c084fc, #f472b6);
+        background: linear-gradient(135deg, #ffffff 0%, #38bdf8 50%, #818cf8 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
+        letter-spacing: -0.03em;
         margin: 0;
     }
-    .header-subtitle {
+    .neo-subtitle {
         color: #94a3b8;
         font-size: 0.95rem;
         margin-top: 6px;
+        font-weight: 500;
     }
-    .metric-card {
-        background: rgba(30, 41, 59, 0.6);
+    .live-badge {
+        background: rgba(16, 185, 129, 0.12);
+        border: 1px solid rgba(16, 185, 129, 0.4);
+        color: #34d399;
+        padding: 8px 16px;
+        border-radius: 30px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        box-shadow: 0 0 20px rgba(16, 185, 129, 0.2);
+    }
+
+    /* Glowing Financial Metric Cards */
+    .metric-container {
+        background: linear-gradient(145deg, rgba(15, 23, 42, 0.8) 0%, rgba(30, 41, 59, 0.5) 100%);
         border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 14px;
-        padding: 20px;
-        text-align: center;
-        backdrop-filter: blur(8px);
-        transition: transform 0.2s ease, border-color 0.2s ease;
+        border-radius: 16px;
+        padding: 24px;
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
-    .metric-card:hover {
-        transform: translateY(-3px);
-        border-color: rgba(168, 85, 247, 0.4);
+    .metric-container:hover {
+        transform: translateY(-4px);
+        border-color: rgba(56, 189, 248, 0.4);
+        box-shadow: 0 15px 30px -10px rgba(56, 189, 248, 0.15);
     }
     .metric-val {
-        font-size: 1.8rem;
+        font-size: 1.9rem;
+        font-weight: 800;
+        color: #f8fafc;
+        letter-spacing: -0.03em;
+    }
+    .metric-lbl {
+        color: #64748b;
+        font-size: 0.75rem;
         font-weight: 700;
-        color: #38bdf8;
-    }
-    .metric-label {
-        color: #94a3b8;
-        font-size: 0.8rem;
         text-transform: uppercase;
-        letter-spacing: 1px;
+        letter-spacing: 0.1em;
+        margin-top: 6px;
     }
+
+    /* Vibrant Buttons */
     .stButton>button {
-        background: linear-gradient(90deg, #6366f1 0%, #a855f7 100%) !important;
+        background: linear-gradient(135deg, #0284c7 0%, #2563eb 100%) !important;
         color: #ffffff !important;
-        border: none !important;
+        border: 1px solid rgba(56, 189, 248, 0.3) !important;
         border-radius: 10px !important;
-        padding: 10px 24px !important;
+        padding: 12px 24px !important;
         font-weight: 600 !important;
-        box-shadow: 0 4px 15px rgba(168, 85, 247, 0.3) !important;
+        box-shadow: 0 4px 20px rgba(37, 99, 235, 0.4) !important;
+        transition: all 0.2s ease !important;
+    }
+    .stButton>button:hover {
+        background: linear-gradient(135deg, #0ea5e9 0%, #1d4ed8 100%) !important;
+        box-shadow: 0 6px 25px rgba(14, 165, 233, 0.6) !important;
+        transform: translateY(-1px);
+    }
+
+    /* Tabs Styling */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 12px;
+        background-color: transparent;
+        margin-bottom: 20px;
+    }
+    .stTabs [data-baseweb="tab"] {
+        background-color: rgba(15, 23, 42, 0.7);
+        border-radius: 10px;
+        color: #94a3b8;
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        padding: 10px 20px;
+        font-weight: 600;
+    }
+    .stTabs [aria-selected="true"] {
+        background: linear-gradient(135deg, rgba(14, 165, 233, 0.2) 0%, rgba(37, 99, 235, 0.2) 100%) !important;
+        color: #38bdf8 !important;
+        border-color: rgba(56, 189, 248, 0.5) !important;
+        box-shadow: 0 0 15px rgba(56, 189, 248, 0.15);
     }
 </style>
 """, unsafe_allow_html=True)
 
-# Load AI Model and Vectorizer
+# Load AI Model and Vectorizer safely
 @st.cache_resource
-def load_ai_artifacts():
+def load_neo_models():
     try:
         model = joblib.load('transaction_model.pkl')
         vectorizer = joblib.load('tfidf_vectorizer.pkl')
         return model, vectorizer
-    except Exception as e:
+    except Exception:
         return None, None
 
-model, vectorizer = load_ai_artifacts()
+model, vectorizer = load_neo_models()
 
-# App Header
+# Top Hero Header
 st.markdown("""
-<div class="header-box">
-    <div style="display: flex; justify-content: space-between; align-items: center;">
-        <div>
-            <h1 class="header-title">Smart AI Bank Statement Categorizer</h1>
-            <p class="header-subtitle">Universal Multi-Bank & PhonePe Statement Intelligence Engine</p>
-        </div>
-        <div style="background: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; padding: 6px 14px; border-radius: 20px; color: #34d399; font-size: 0.85rem; font-weight: 600;">
-            ● AI Engine Active
-        </div>
+<div class="neo-header">
+    <div>
+        <h1 class="neo-title">AuraPay Intelligence</h1>
+        <p class="neo-subtitle">Autonomous Multi-Bank & UPI Transaction Categorization Engine</p>
+    </div>
+    <div class="live-badge">
+        <span style="width: 8px; height: 8px; background: #34d399; border-radius: 50%; display: inline-block; box-shadow: 0 0 10px #34d399;"></span>
+        AI Core Online
     </div>
 </div>
 """, unsafe_allow_html=True)
 
-# Check model availability
 if model is None or vectorizer is None:
-    st.error("⚠️ Model files (`transaction_model.pkl` or `tfidf_vectorizer.pkl`) not found in the directory! Please place them alongside `app.py`.")
+    st.error("⚠️ Model artifacts (`transaction_model.pkl` or `tfidf_vectorizer.pkl`) missing. Please verify root directory files.")
 else:
-    # Sidebar Upload Section
-    st.sidebar.markdown("### 📥 Upload Statement")
+    # Sidebar File Ingestion
+    st.sidebar.markdown("### 📥 Statement Ingestion")
     uploaded_file = st.sidebar.file_uploader(
-        "Upload CSV, Excel, or Text Statement", 
+        "Upload Bank or UPI Export",
         type=["csv", "xlsx", "xls", "txt"],
-        help="Supports HDFC, SBI, ICICI, PhonePe, Google Pay, Paytm & Custom Statements."
+        help="Supports CSV, Excel (.xlsx, .xls), and Text statements from PhonePe, GPay, HDFC, SBI, ICICI, etc."
     )
 
     if uploaded_file is not None:
         try:
             filename = uploaded_file.name
-            # Read File based on format
+            # Multi-format reader
             if filename.endswith('.csv') or filename.endswith('.txt'):
                 try:
                     df = pd.read_csv(uploaded_file)
                 except:
                     uploaded_file.seek(0)
                     df = pd.read_csv(uploaded_file, sep='\t')
-            elif filename.endswith('.xlsx') or filename.endswith('.xls'):
+            else:
                 df = pd.read_excel(uploaded_file)
 
-            # --- SMART COLUMN AUTO-DETECTOR ---
-            # Automatically detects description / narration / particulars column from any bank or app
-            possible_desc_keywords = ['desc', 'narration', 'particular', 'detail', 'remark', 'note', 'transaction', 'merchant', 'paid to']
+            # Smart Column Detector
+            keywords = ['desc', 'narration', 'particular', 'detail', 'remark', 'note', 'transaction', 'merchant', 'paid', 'item']
             desc_col = None
             
             for col in df.columns:
-                col_lower = str(col).lower()
-                if any(kw in col_lower for kw in possible_desc_keywords):
+                if any(kw in str(col).lower() for kw in keywords):
                     desc_col = col
                     break
             
-            # If no keyword matched, pick the column with the maximum average text length (likely description)
             if desc_col is None:
-                text_lens = {col: df[col].astype(str).str.len().mean() for col in df.columns}
-                desc_col = max(text_lens, key=text_lens.get)
+                for col in df.columns:
+                    if df[col].dtype == 'object':
+                        desc_col = col
+                        break
+            if desc_col is None:
+                desc_col = df.columns[0]
 
-            st.sidebar.success(f"File: **{filename}**")
-            st.sidebar.info(f"Detected Text Column: **{desc_col}**")
+            st.sidebar.success(filename)
+            st.sidebar.info(f"Field Mapped: `{desc_col}`")
 
-            # --- RUN AI PREDICTION ---
+            # Run AI Inference & Confidence Scoring
             descriptions = df[desc_col].astype(str)
             X_vec = vectorizer.transform(descriptions)
             
-            predictions = model.predict(X_vec)
-            probabilities = model.predict_proba(X_vec)
-            confidence_scores = np.max(probabilities, axis=1)
-            
-            df['Predicted_Category'] = predictions
-            df['Confidence_Score'] = confidence_scores
+            df['Category'] = model.predict(X_vec)
+            df['Confidence'] = np.max(model.predict_proba(X_vec), axis=1)
+
+            # Identify Amount Column if available for deeper financial analytics
+            amount_col = None
+            for col in df.columns:
+                if any(k in str(col).lower() for k in ['amount', 'withdrawal', 'debit', 'sum', 'value']):
+                    amount_col = col
+                    break
 
             # Dashboard Tabs
-            tab1, tab2, tab3 = st.tabs(["📊 Executive Analytics", "⚠️ Low-Confidence Review", "📥 Export Clean Data"])
+            tab1, tab2, tab3 = st.tabs(["📊 Executive Analytics", "🔍 Confidence & Audit", "📥 Verified Export"])
 
             with tab1:
+                # Top KPI Metrics Cards
                 c1, c2, c3, c4 = st.columns(4)
                 with c1:
-                    st.markdown(f'<div class="metric-card"><div class="metric-val">{len(df)}</div><div class="metric-label">Total Transactions</div></div>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="metric-container"><div class="metric-val">{len(df):,}</div><div class="metric-lbl">Total Transactions</div></div>', unsafe_allow_html=True)
                 with c2:
-                    st.markdown(f'<div class="metric-card"><div class="metric-val">{df["Predicted_Category"].nunique()}</div><div class="metric-label">Categories Found</div></div>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="metric-container"><div class="metric-val" style="color: #38bdf8;">{df["Category"].nunique()}</div><div class="metric-lbl">Unique Categories</div></div>', unsafe_allow_html=True)
                 with c3:
-                    st.markdown(f'<div class="metric-card"><div class="metric-val">{df["Confidence_Score"].mean()*100:.1f}%</div><div class="metric-label">AI Confidence</div></div>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="metric-container"><div class="metric-val" style="color: #34d399;">{df["Confidence"].mean()*100:.1f}%</div><div class="metric-lbl">AI Confidence</div></div>', unsafe_allow_html=True)
                 with c4:
-                    low_count = len(df[df['Confidence_Score'] < 0.70])
-                    st.markdown(f'<div class="metric-card"><div class="metric-val" style="color: #f43f5e;">{low_count}</div><div class="metric-label">Needs Review</div></div>', unsafe_allow_html=True)
+                    flagged = len(df[df['Confidence'] < 0.70])
+                    st.markdown(f'<div class="metric-container"><div class="metric-val" style="color: #f43f5e;">{flagged}</div><div class="metric-lbl">Review Required</div></div>', unsafe_allow_html=True)
 
-                st.markdown("---")
-                st.write("### 📈 Category Spend / Transaction Distribution")
-                cat_counts = df['Predicted_Category'].value_counts()
-                st.bar_chart(cat_counts)
+                st.markdown("<br>", unsafe_allow_html=True)
 
-                st.write("### 📋 Categorized Transactions Data Preview")
+                # --- COLOR-CODED PLOTLY CHARTS ---
+                col_left, col_right = st.columns([1.2, 1])
+
+                with col_left:
+                    st.subheader("Category Distribution (Interactive Donut Chart)")
+                    cat_counts = df['Category'].value_counts().reset_index()
+                    cat_counts.columns = ['Category', 'Count']
+
+                    # Custom color palette for categories
+                    custom_colors = ['#38bdf8', '#818cf8', '#c084fc', '#f472b6', '#34d399', '#fbbf24', '#f87171', '#a78bfa']
+
+                    fig_donut = px.pie(
+                        cat_counts, 
+                        names='Category', 
+                        values='Count', 
+                        hole=0.65,
+                        color_discrete_sequence=custom_colors
+                    )
+                    fig_donut.update_layout(
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        plot_bgcolor='rgba(0,0,0,0)',
+                        font=dict(color='#f1f5f9', family='Plus Jakarta Sans'),
+                        legend=dict(orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5),
+                        margin=dict(t=10, b=10, l=10, r=10)
+                    )
+                    st.plotly_chart(fig_donut, use_container_width=True)
+
+                with col_right:
+                    st.subheader("Top Category Breakdown")
+                    fig_bar = px.bar(
+                        cat_counts,
+                        x='Category',
+                        y='Count',
+                        color='Category',
+                        color_discrete_sequence=custom_colors
+                    )
+                    fig_bar.update_layout(
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        plot_bgcolor='rgba(0,0,0,0)',
+                        font=dict(color='#f1f5f9', family='Plus Jakarta Sans'),
+                        showlegend=False,
+                        margin=dict(t=10, b=10, l=10, r=10),
+                        xaxis=dict(showgrid=False),
+                        yaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.05)')
+                    )
+                    st.plotly_chart(fig_bar, use_container_width=True)
+
+                st.subheader("Processed Ledger Table")
                 st.dataframe(df, use_container_width=True)
 
             with tab2:
-                st.subheader("⚠️ Low-Confidence Audit & Review")
-                st.write("Filter transactions where AI confidence is below your chosen threshold:")
-                threshold = st.slider("Confidence Threshold Level", 0.0, 1.0, 0.70, 0.05)
+                st.subheader("Low Confidence Audit & Review Queue")
+                st.write("Isolate and verify transactions where model confidence falls below your operational threshold.")
+                threshold = st.slider("Confidence Filter Level", 0.0, 1.0, 0.70, 0.05)
                 
-                low_conf_df = df[df['Confidence_Score'] < threshold]
-                st.write(f"Flagged Transactions: **{len(low_conf_df)}**")
-                
-                if len(low_conf_df) > 0:
-                    st.dataframe(low_conf_df[[desc_col, 'Predicted_Category', 'Confidence_Score']], use_container_width=True)
+                audit_df = df[df['Confidence'] < threshold]
+                st.markdown(f"**Flagged Entries:** {len(audit_df)}")
+                if len(audit_df) > 0:
+                    st.dataframe(audit_df, use_container_width=True)
                 else:
-                    st.success("🎉 Excellent! All transactions meet the confidence threshold.")
+                    st.success("All transactions successfully cleared confidence thresholds.")
 
             with tab3:
-                st.subheader("📥 Download Categorized Statement")
-                st.write("Export your fully processed bank statement with AI categories and confidence scores.")
-                
-                csv_data = df.to_csv(index=False).encode('utf-8')
+                st.subheader("Export Verified Dataset")
+                st.write("Download your fully categorized statement complete with AI confidence scores and assigned category markers.")
+                csv_bytes = df.to_csv(index=False).encode('utf-8')
                 st.download_button(
-                    label="Download Categorized CSV",
-                    data=csv_data,
-                    file_name=f"categorized_{filename.split('.')[0]}.csv",
+                    label="Download Audited CSV Statement",
+                    data=csv_bytes,
+                    file_name=f"aurapay_categorized_{filename.split('.')[0]}.csv",
                     mime="text/csv"
                 )
 
         except Exception as e:
-            st.error(f"❌ Error processing statement file: {e}")
+            st.error(f"Error parsing statement file: {e}")
 
     else:
         st.markdown("""
-        <div style="text-align: center; padding: 70px; background: rgba(30, 41, 59, 0.4); border: 2px dashed rgba(255, 255, 255, 0.1); border-radius: 16px;">
-            <h3 style="color: #cbd5e1; margin-bottom: 10px;">📁 Ready for Statement Upload</h3>
-            <p style="color: #64748b; font-size: 1rem;">Upload any bank statement or UPI app export (CSV, Excel, Text) from the sidebar to instantly activate AI categorization and predictions.</p>
+        <div style="text-align: center; padding: 90px 20px; background: rgba(15, 23, 42, 0.5); border: 2px dashed rgba(56, 189, 248, 0.2); border-radius: 20px;">
+            <h3 style="color: #f1f5f9; margin-bottom: 10px; font-weight: 700;">Ready for Data Ingestion</h3>
+            <p style="color: #64748b; font-size: 1rem;">Upload any bank statement, UPI export, CSV, Excel, or Text file from the sidebar to activate the intelligence engine.</p>
         </div>
         """, unsafe_allow_html=True)
